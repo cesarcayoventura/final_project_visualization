@@ -1,0 +1,67 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #fafafa;
+  margin: 20px;
+}
+
+h1, h2 {
+  color: #333;
+}
+
+section {
+  margin-bottom: 40px;
+}
+
+/* Tooltip style */
+.tooltip {
+  position: absolute;
+  background: white;
+  border: 1px solid #aaa;
+  padding: 5px 8px;
+  border-radius: 4px;
+  visibility: hidden;
+  pointer-events: none;
+  font-size: 14px;
+  box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+}
+
+#kpi {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 15px;
+}
+
+/* Cada tarjeta KPI */
+.kpi-card {
+  background: linear-gradient(135deg, #4e79a7, #a0c4ff);
+  color: white;
+  padding: 20px;
+  border-radius: 12px;
+  min-width: 180px;
+  flex: 1 1 180px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.kpi-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+}
+
+/* Etiquetas de KPI */
+.kpi-card h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Valores de KPI */
+.kpi-card p {
+  margin: 10px 0 0;
+  font-size: 28px;
+  font-weight: bold;
+}
