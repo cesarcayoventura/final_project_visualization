@@ -1,29 +1,22 @@
-body {
+body { 
   font-family: Arial, sans-serif;
   background: #fafafa;
-  margin: 20px;
+    margin: 20px; 
+    color: #333; 
 }
 
-h1, h2 {
-  color: #333;
+header { 
+    text-align: center; 
+    margin-bottom: 30px; 
 }
 
-section {
-  margin-bottom: 40px;
+h2 { 
+    border-bottom: 1px solid #ddd; 
+    padding-bottom: 5px; 
+    margin-bottom: 15px; 
+    font-size: 1.2rem; 
 }
 
-/* Tooltip style */
-.tooltip {
-  position: absolute;
-  background: white;
-  border: 1px solid #aaa;
-  padding: 5px 8px;
-  border-radius: 4px;
-  visibility: hidden;
-  pointer-events: none;
-  font-size: 14px;
-  box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
-}
 
 #kpi {
   display: flex;
@@ -64,4 +57,74 @@ section {
   margin: 10px 0 0;
   font-size: 28px;
   font-weight: bold;
+}
+
+/* Section C is 80% weight of demographic container */
+.dashboard-row { 
+    display: flex; 
+    gap: 20px; 
+    margin-bottom: 30px; 
+    align-items: stretch; 
+}
+
+.half-width { 
+    flex: 1.2; 
+    background: white; 
+    padding: 20px; 
+    border-radius: 12px; 
+    border: 1px solid #eee; 
+}
+
+.half-width-small { 
+    flex: 0.8; 
+    background: white; 
+    padding: 20px; 
+    border-radius: 12px; 
+    border: 1px solid #eee; 
+}
+
+#demographic { 
+    display: flex; 
+    justify-content: space-between; 
+    gap: 10px; 
+}
+
+.demo-chart-box { 
+    flex: 1; 
+    min-width: 0; 
+}
+
+/* Chart Titles */
+.chart-title { 
+    font-size: 14px; 
+    font-weight: bold; 
+    fill: #333; }
+
+svg { 
+    width: 100%; 
+    height: auto; 
+    display: block; 
+}
+.tick text { 
+    font-size: 11px; 
+}
+
+#reset-btn { 
+    padding: 10px 20px; 
+    background: #333; 
+    color: white; 
+    border: none; 
+    border-radius: 4px; 
+    cursor: pointer; 
+}
+#reset-btn:hover { background: #555; }
+
+#tooltip { 
+    position: absolute; 
+    visibility: hidden; 
+    background: white; 
+    border: 1px solid #999; 
+    padding: 8px; 
+    font-size: 12px; 
+    z-index: 1000; 
 }
