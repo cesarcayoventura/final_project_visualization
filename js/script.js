@@ -1,14 +1,13 @@
-// Full labels for Education
 const eduMap = { 1: "Graduate School", 2: "University", 3: "High School", 4: "Others", 5: "Others", 6: "Others", 0: "Others" };
 const sexMap = { 1: "Male", 2: "Female" };
 const marriageMap = { 1: "Married", 2: "Single", 3: "Others", 0: "Others" };
 
 let globalDataRef = [];
+let activeFilters = { SEX_LABEL: [], EDU_LABEL: [], MARRY_LABEL: [], RISK: null };
 const tooltip = d3.select("#tooltip");
 
-d3.csv("data/default_of_credit_card_clients.csv").then(data => {
-    
-    data.forEach(d => {
+d3.csv("data/default_of_credit_card_clients.csv").then(function(data) {
+    data.forEach(function(d) {
         d.default = +d["default payment next month"];
         d.limit = +d.LIMIT_BAL;
         d.EDU_LABEL = eduMap[+d["EDUCATION"]] || "Others";
@@ -19,131 +18,165 @@ d3.csv("data/default_of_credit_card_clients.csv").then(data => {
             d[`pay${i}`] = +d[`PAY_AMT${i}`];
         }
     });
-
-    // Verification logs
-    console.log("Unique Education values:", [...new Set(data.map(d => d.EDUCATION))]);
-    console.log("Unique Marriage values:", [...new Set(data.map(d => d.MARRIAGE))]);
-
     globalDataRef = data;
-    renderKPIs(data.length, d3.sum(data, d => d.default));
-    renderDemo(data);
-    renderLimitDistribution(data);
-    renderLineChart(data);
-
-    d3.select("#reset-btn").on("click", () => {
-        d3.selectAll("rect").style("opacity", 1);
-        renderDemo(globalDataRef);
-        renderLineChart(globalDataRef);
-    });
+    initToggle();
+    updateDashboard();
+    d3.select("#reset-btn").on("click", resetAll);
 });
 
-const renderKPIs = (total, def) => {
+function resetAll() {
+    activeFilters = { SEX_LABEL: [], EDU_LABEL: [], MARRY_LABEL: [], RISK: null };
+    d3.selectAll(".toggle-item").classed("active", false);
+    updateDashboard();
+}
+
+function initToggle() {
+    d3.selectAll(".toggle-item").on("click", function() {
+        const riskVal = +d3.select(this).attr("data-risk");
+        if (activeFilters.RISK === riskVal) {
+            activeFilters.RISK = null;
+            d3.select(this).classed("active", false);
+        } else {
+            activeFilters.RISK = riskVal;
+            d3.selectAll(".toggle-item").classed("active", false);
+            d3.select(this).classed("active", true);
+        }
+        updateDashboard();
+    });
+}
+
+function updateDashboard() {
+    let filtered = globalDataRef;
+    Object.keys(activeFilters).forEach(function(key) {
+        if (key !== 'RISK' && activeFilters[key].length > 0) {
+            filtered = filtered.filter(d => activeFilters[key].includes(d[key]));
+        }
+    });
+    if (activeFilters.RISK !== null) filtered = filtered.filter(d => d.default === activeFilters.RISK);
+
+    renderKPIs(filtered.length, d3.sum(filtered, d => d.default));
+    renderDemo();
+    renderLimitDistribution(filtered);
+    renderLineChart(filtered);
+    updateBreadcrumbs();
+}
+
+function renderKPIs(total, def) {
     const kpi = d3.select("#kpi").html("");
-    const rate = ((def / total) * 100).toFixed(2);
-    const stats = [{l: "Total Clients", v: total}, {l: "Clients in Default", v: def}, {l: "Default Rate (%)", v: rate}];
-    stats.forEach(s => {
+    const rate = total > 0 ? ((def / total) * 100).toFixed(1) : 0;
+    const items = [{l: "Total Population", v: total}, {l: "Defaulters at Risk", v: def}, {l: "Group Risk Rate", v: rate + "%"}];
+    items.forEach(function(s) {
         const card = kpi.append("div").attr("class", "kpi-card");
         card.append("h3").text(s.l);
-        card.append("p").text(s.v);
+        card.append("p").text(s.v.toLocaleString());
     });
-};
+}
 
-const renderDemo = (data) => {
-    const container = d3.select("#demographic").html("");
-    const plots = [{id: "sex-chart", t: "Gender", c: "SEX_LABEL"}, {id: "edu-chart", t: "Education Level", c: "EDU_LABEL"}, {id: "mar-chart", t: "Marital Status", c: "MARRY_LABEL"}];
-    plots.forEach(p => {
-        container.append("div").attr("class", "demo-chart-box").attr("id", p.id);
-        drawStackedBar(`#${p.id}`, p.t, p.c, data);
-    });
-};
-
-function drawStackedBar(containerId, title, column, data) {
-    const vW = 300, vH = 400;
-    const margin = {top: 40, right: 10, bottom: 80, left: 50};
+function drawStackedBar(containerId, title, column) {
+    const vW = 320, vH = 380, margin = {top: 30, right: 10, bottom: 80, left: 60};
     const w = vW - margin.left - margin.right, h = vH - margin.top - margin.bottom;
-
-    const svg = d3.select(containerId).append("svg").attr("viewBox", `0 0 ${vW} ${vH}`)
-                .append("g").attr("transform", `translate(${margin.left},${margin.top})`);
-
-    const nested = d3.rollups(data, v => v.length, d => d[column], d => d.default);
-    const chartData = nested.map(([k, v]) => {
+    const svg = d3.select(containerId).append("svg").attr("viewBox", `0 0 ${vW} ${vH}`).append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+    
+    const nested = d3.rollups(globalDataRef, v => v.length, d => d[column], d => d.default);
+    const chartData = nested.map(function([k, v]) {
         const o = { cat: k, total: d3.sum(v, x => x[1]), 0: 0, 1: 0 };
         v.forEach(([s, val]) => o[s] = val);
         return o;
     }).sort((a,b) => b.total - a.total);
 
     const x = d3.scaleBand().domain(chartData.map(d => d.cat)).range([0, w]).padding(0.4);
-    const y = d3.scaleLinear().domain([0, d3.max(chartData, d => d.total) * 1.05]).range([h, 0]);
+    const y = d3.scaleLinear().domain([0, d3.max(chartData, d => d.total) * 1.1]).range([h, 0]);
     const color = d3.scaleOrdinal().domain([0, 1]).range(["#4e79a7", "#f28e2c"]);
 
-    svg.append("g").attr("transform", `translate(0,${h})`).call(d3.axisBottom(x)).selectAll("text").attr("transform", "rotate(-45)").style("text-anchor", "end");
+    svg.append("g").attr("transform", `translate(0,${h})`).call(d3.axisBottom(x)).selectAll("text")
+       .attr("transform", "rotate(-35)").style("text-anchor", "end");
     svg.append("g").call(d3.axisLeft(y).ticks(5).tickFormat(d3.format(".1s")));
 
     svg.selectAll("g.layer").data(d3.stack().keys([0, 1])(chartData)).enter().append("g").attr("fill", d => color(d.key))
         .selectAll("rect").data(d => d).enter().append("rect")
+        .attr("class", "clickable-bar")
         .attr("x", d => x(d.data.cat)).attr("y", d => y(d[1])).attr("height", d => y(d[0]) - y(d[1])).attr("width", x.bandwidth())
-        .style("cursor", "pointer")
-        .on("click", (event, d) => {
-            const selected = d.data.cat;
-            d3.selectAll("#demographic rect").style("opacity", 0.2);
-            d3.select(containerId).selectAll("rect").filter(r => r && r.data && r.data.cat === selected).style("opacity", 1);
-            renderLineChart(globalDataRef.filter(r => r[column] === selected));
-        });
+        .classed("bar-selected", d => activeFilters[column].includes(d.data.cat))
+        .classed("bar-dimmed", d => {
+            const anyActive = Object.values(activeFilters).some(arr => Array.isArray(arr) && arr.length > 0);
+            return anyActive && !activeFilters[column].includes(d.data.cat);
+        })
+        .on("click", function(event, d) {
+            const idx = activeFilters[column].indexOf(d.data.cat);
+            if (idx > -1) activeFilters[column].splice(idx, 1);
+            else activeFilters[column].push(d.data.cat);
+            updateDashboard();
+        })
+        .on("mousemove", function(event, d) {
+            tooltip.style("visibility", "visible")
+                   .html(`<strong>Category: ${d.data.cat}</strong><br/>Type: ${d3.select(this.parentNode).datum().key === 1 ? 'Defaulter' : 'On-Track'}<br/>Clients: ${(d[1]-d[0]).toLocaleString()}`)
+                   .style("top", (event.pageY - 15) + "px").style("left", (event.pageX + 15) + "px");
+        })
+        .on("mouseout", () => tooltip.style("visibility", "hidden"));
 
-    chartData.forEach(d => {
-        svg.append("text").attr("x", x(d.cat) + x.bandwidth()/2).attr("y", y(d.total) - 8).attr("text-anchor", "middle").style("font-size", "11px").style("fill", "#d45113").text(((d[1]/d.total)*100).toFixed(1) + "% Risk");
-    });
-    svg.append("text").attr("x", w/2).attr("y", -15).attr("text-anchor", "middle").attr("class", "chart-title").text(title);
+    svg.append("text").attr("x", w/2).attr("y", -10).attr("text-anchor", "middle").style("font-weight", "800").style("font-size", "18px").text(title);
 }
 
-const renderLimitDistribution = (data) => {
+function renderDemo() {
+    const container = d3.select("#demographic").html("");
+    [{id:"sex", t:"Gender", c:"SEX_LABEL"}, {id:"edu", t:"Education", c:"EDU_LABEL"}, {id:"mar", t:"Marriage", c:"MARRY_LABEL"}].forEach(function(p) {
+        container.append("div").attr("class", "demo-chart-box").attr("id", p.id);
+        drawStackedBar(`#${p.id}`, p.t, p.c);
+    });
+}
+
+function renderLimitDistribution(data) {
     const container = d3.select("#credit").html("");
-    const vW = 400, vH = 300;
-    const margin = {top: 20, right: 20, bottom: 40, left: 50};
+    const vW = 400, vH = 320, margin = {top: 20, right: 20, bottom: 40, left: 60};
     const w = vW - margin.left - margin.right, h = vH - margin.top - margin.bottom;
-
     const svg = container.append("svg").attr("viewBox", `0 0 ${vW} ${vH}`).append("g").attr("transform", `translate(${margin.left},${margin.top})`);
-    const x = d3.scaleLinear().domain([0, d3.max(data, d => d.limit)]).nice().range([0, w]);
-    const bins = d3.bin().domain(x.domain()).thresholds(25)(data.map(d => d.limit));
-    const y = d3.scaleLinear().domain([0, d3.max(bins, d => d.length)]).nice().range([h, 0]);
-
-    svg.selectAll("rect").data(bins).enter().append("rect")
-        .attr("x", d => x(d.x0) + 1).attr("y", d => y(d.length)).attr("width", d => Math.max(0, x(d.x1) - x(d.x0) - 1)).attr("height", d => h - y(d.length)).attr("fill", "#4e79a7");
+    const x = d3.scaleLinear().domain([0, d3.max(globalDataRef, d => d.limit)]).range([0, w]);
+    const bins = d3.bin().domain(x.domain()).thresholds(20)(data.map(d => d.limit));
+    const y = d3.scaleLinear().domain([0, d3.max(bins, d => d.length)]).range([h, 0]);
+    svg.selectAll("rect").data(bins).enter().append("rect").attr("x", d => x(d.x0) + 1).attr("y", d => y(d.length)).attr("width", d => Math.max(0, x(d.x1) - x(d.x0) - 1)).attr("height", d => h - y(d.length)).attr("fill", "#4e79a7")
+       .on("mousemove", (event, d) => tooltip.style("visibility", "visible").html(`Credit Range: NT$ ${d.x0.toLocaleString()} - ${d.x1.toLocaleString()}<br/>Clients: ${d.length.toLocaleString()}`).style("top", (event.pageY - 15) + "px").style("left", (event.pageX + 15) + "px"))
+       .on("mouseout", () => tooltip.style("visibility", "hidden"));
     svg.append("g").attr("transform", `translate(0,${h})`).call(d3.axisBottom(x).ticks(5).tickFormat(d3.format(".1s")));
-    svg.append("g").call(d3.axisLeft(y).ticks(5).tickFormat(d3.format(".1s")));
-    svg.append("text").attr("x", w/2).attr("y", h + 35).attr("text-anchor", "middle").style("font-size", "12px").text("Credit Limit (NT$)");
-};
+    svg.append("g").call(d3.axisLeft(y).ticks(5));
+}
 
-const renderLineChart = (dataSubset) => {
+function renderLineChart(dataSubset) {
     const container = d3.select("#Linechart").html("");
-    const vW = 800, vH = 400;
-    const margin = {top: 40, right: 180, bottom: 50, left: 80};
+    const vW = 850, vH = 400, margin = {top: 20, right: 30, bottom: 60, left: 65};
     const w = vW - margin.left - margin.right, h = vH - margin.top - margin.bottom;
-
     const svg = container.append("svg").attr("viewBox", `0 0 ${vW} ${vH}`).append("g").attr("transform", `translate(${margin.left},${margin.top})`);
     const months = [6, 5, 4, 3, 2, 1], labels = ["Apr", "May", "Jun", "Jul", "Aug", "Sep"];
-    const getAvg = (sub) => ({
-        b: months.map((m, i) => ({x: i, v: d3.mean(sub, d => d[`bill${m}`]) || 0})),
-        p: months.map((m, i) => ({x: i, v: d3.mean(sub, d => d[`pay${m}`]) || 0}))
-    });
-
+    const getAvg = sub => months.map((m, i) => ({x: i, v: d3.mean(sub, d => d[`bill${m}`]) || 0, p: d3.mean(sub, d => d[`pay${m}`]) || 0}));
     const def = getAvg(dataSubset.filter(d => d.default === 1)), ok = getAvg(dataSubset.filter(d => d.default === 0));
-    const yMax = d3.max([...def.b, ...ok.b].map(v => v.v)) || 1000;
-    const x = d3.scaleLinear().domain([0, 5]).range([0, w]), y = d3.scaleLinear().domain([0, yMax * 1.1]).range([h, 0]).nice();
-
+    const yMax = d3.max([...def, ...ok].flatMap(d => [d.v, d.p])) || 1000;
+    const x = d3.scaleLinear().domain([0, 5]).range([0, w]), y = d3.scaleLinear().domain([0, yMax * 1.1]).range([h, 0]);
     svg.append("g").attr("transform", `translate(0,${h})`).call(d3.axisBottom(x).tickFormat(i => labels[i]));
-    svg.append("g").call(d3.axisLeft(y).ticks(5).tickFormat(d3.format(".1s")));
-
-    const line = d3.line().x(d => x(d.x)).y(d => y(d.v)).curve(d3.curveMonotoneX);
-    const configs = [
-        {l: "Avg Bill (Defaulter)", c: "#E74C3C", d: def.b, s: "0"}, 
-        {l: "Avg Pay (Defaulter)", c: "#E74C3C", d: def.p, s: "3,3"}, 
-        {l: "Avg Bill (On-Track)", c: "#4e79a7", d: ok.b, s: "0"}, 
-        {l: "Avg Pay (On-Track)", c: "#4e79a7", d: ok.p, s: "3,3"}
-    ];
-
-    configs.forEach((cfg, i) => {
-        svg.append("path").datum(cfg.d).attr("fill", "none").attr("stroke", cfg.c).attr("stroke-width", 2).attr("stroke-dasharray", cfg.s).attr("d", line);
-        svg.append("text").attr("x", w + 10).attr("y", i * 20 + 5).text(cfg.l).style("font-size", "12px").attr("fill", cfg.c).attr("alignment-baseline", "middle");
+    svg.append("g").call(d3.axisLeft(y).tickFormat(d3.format(".1s")));
+    const lineB = d3.line().x(d => x(d.x)).y(d => y(d.v)), lineP = d3.line().x(d => x(d.x)).y(d => y(d.p));
+    const configs = [{d: def, c: "#f28e2c", l: "Defaulter Bill", type: 'b', s: "line-solid"}, {d: def, c: "#f28e2c", l: "Defaulter Pay", type: 'p', s: "line-dashed"}, {d: ok, c: "#4e79a7", l: "On-Track Bill", type: 'b', s: "line-solid"}, {d: ok, c: "#4e79a7", l: "On-Track Pay", type: 'p', s: "line-dashed"}];
+    configs.forEach(function(cfg) {
+        if (cfg.d.every(d => d.v === 0 && d.p === 0)) return;
+        svg.append("path").datum(cfg.d).attr("fill", "none").attr("stroke", cfg.c).attr("stroke-width", 2)
+           .attr("stroke-dasharray", cfg.s === "line-dashed" ? "8,8" : "0").attr("d", cfg.type === 'b' ? lineB : lineP);
+        
+        svg.selectAll(".dot-" + cfg.l.replace(/\s+/g, '')).data(cfg.d).enter().append("circle").attr("r", 4).attr("cx", d => x(d.x)).attr("cy", d => cfg.type === 'b' ? y(d.v) : y(d.p)).attr("fill", cfg.c)
+           .on("mousemove", (event, d) => tooltip.style("visibility", "visible").html(`<strong>Month: ${labels[d.x]}</strong><br/>Amount: NT$ ${Math.round(cfg.type === 'b' ? d.v : d.p).toLocaleString()}`).style("top", (event.pageY - 15) + "px").style("left", (event.pageX + 15) + "px"))
+           .on("mouseout", () => tooltip.style("visibility", "hidden"));
     });
-};
+    const legend = d3.select("#line-legend").html("");
+    configs.forEach(function(cfg) {
+        const item = legend.append("div").attr("class", "legend-item");
+        item.append("div").attr("class", `legend-line ${cfg.s}`).style("border-top-color", cfg.c);
+        item.append("span").text(cfg.l);
+    });
+}
+
+function updateBreadcrumbs() {
+    let p = [];
+    if (activeFilters.SEX_LABEL.length) p.push(activeFilters.SEX_LABEL.join(" & "));
+    if (activeFilters.EDU_LABEL.length) p.push(activeFilters.EDU_LABEL.join(" & "));
+    if (activeFilters.MARRY_LABEL.length) p.push(activeFilters.MARRY_LABEL.join(" & "));
+    if (activeFilters.RISK === 1) p.push("At Risk");
+    if (activeFilters.RISK === 0) p.push("On-Track");
+    d3.select("#filter-summary").text(p.length ? p.join(" + ") : "Showing All Clients");
+}
