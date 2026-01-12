@@ -1,53 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Default of Credit Card Clients</title>
-  <link rel="stylesheet" href="style.css" />
-  
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="js/script.js"></script>
+    <meta charset="UTF-8" />
+    <title>Credit Risk Analysis Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
-
 <body>
-  <header>
-    <h1>Main Dashboard</h1>
-    <p>
-      This page presents a set of D3.js visualizations based on the Wine Quality dataset.
-      Explore how physicochemical properties influence wine quality.
-    </p>
-  </header>
+    <header class="plain-header">
+        <h1>Credit Risk Analysis Dashboard</h1>
+    </header>
 
-  <section id="kpi-container">
-    <h2>(A) KPIs</h2>
-    <div id="kpi"></div>
-  </section>
+    <section id="kpi-section">
+        <h2 class="section-title">(A) Key Performance Indicators (KPIs)</h2>
+        <div id="kpi"></div>
+    </section>
 
-  <section id="demographic-container">
-    <h2>(B) Demographic  filters</h2>
-    <div id="demographic"></div>
-  </section>
+    <section id="filter-controls-area">
+        <div class="filter-controls-horizontal">
+            <div id="global-risk-toggle">
+                <span class="toggle-label">Filter by Status:</span>
+                <div class="toggle-group">
+                    <div class="toggle-item" data-risk="0">On-Track</div>
+                    <div class="toggle-item" data-risk="1">At Risk</div>
+                </div>
+            </div>
 
-  <section id="credit-container">
-    <h2>(C) Credit Limit Distribution</h2>
-    <div id="credit"></div>
-  </section>
+            <div id="filter-display">
+                <div id="filter-summary">Showing All Clients</div>
+            </div>
 
-   <section id="payment-container">
-    <h2>(D) Payment History Heatmap</h2>
-    <div id="payment"></div>
-  </section>
+            <button id="reset-btn">Reset All Filters</button>
+        </div>
+    </section>
 
-     <section id="Linechart-container">
-    <h2>(E) Linechart</h2>
-    <div id="Linechart"></div>
-  </section>
+    <div class="dashboard-row top-row">
+        <section id="demographic-container" class="chart-box column-left">
+            <h2 class="section-title">(B) Demographics</h2>
+            <div id="demographic"></div>
+        </section>
+        <section id="credit-container" class="chart-box column-right">
+            <h2 class="section-title">(C) Credit Limit Distribution</h2>
+            <div id="credit"></div>
+        </section>
+    </div>
 
-  <section id="about">
-    <h2>About the Dataset</h2>
-    <p>
-      Additional Information
-    This research aimed at the case of customers' default payments in Taiwan and compares the predictive accuracy of probability of default among six data mining methods. From the perspective of risk management, the result of predictive accuracy of the estimated probability of default will be more valuable than the binary result of classification - credible or not credible clients. Because the real probability of default is unknown, this study presented the novel Sorting Smoothing Method to estimate the real probability of default. With the real probability of default as the response variable (Y), and the predictive probability of default as the independent variable (X), the simple linear regression result (Y = A + BX) shows that the forecasting model produced by artificial neural network has the highest coefficient of determination; its regression intercept (A) is close to zero, and regression coefficient (B) to one. Therefore, among the six data mining techniques, artificial neural network is the only one that can accurately estimate the real probability of default.
+    <div class="dashboard-row bottom-row">
+        <section id="heatmap-section" class="chart-box equal-width">
+            <h2 class="section-title">(D) Payment History Heatmap</h2>
+            <div id="payment-placeholder"></div>
+        </section>
+        <section id="line-section" class="chart-box equal-width">
+            <h2 class="section-title">(E) Financial Behavior Trends</h2>
+            <div id="Linechart"></div>
+            <div id="line-legend" class="legend-box"></div>
+        </section>
+    </div>
+
+    <section id="about">
+        <h2>About the Dataset</h2>
+        <p>
+            Additional Information:<br>
+
+    This research is aimed at the case of customers' default payments in Taiwan and compares the predictive accuracy of probability of default among six data mining methods. From the perspective of risk management, the result of predictive accuracy of the estimated probability of default will be more valuable than the binary result of classification - credible or not credible clients. Because the real probability of default is unknown, this study presented the novel Sorting Smoothing Method to estimate the real probability of default. With the real probability of default as the response variable (Y), and the predictive probability of default as the independent variable (X), the simple linear regression result (Y = A + BX) shows that the forecasting model produced by artificial neural network has the highest coefficient of determination; its regression intercept (A) is close to zero, and regression coefficient (B) to one. Therefore, among the six data mining techniques, artificial neural network is the only one that can accurately estimate the real probability of default.
     </p>
     <p>
     Original dataset source:  
@@ -55,6 +70,9 @@
       Default of Credit Card Clients
     </a>
   </p>
-  </section>
+    </section>
+
+    <div id="tooltip"></div>
+    <script src="js/script.js"></script>
 </body>
 </html>
