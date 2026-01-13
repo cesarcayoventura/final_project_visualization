@@ -2,13 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Credit Risk Analysis Dashboard</title>
+    <title>Credit Risk Dashboard</title>
     <link rel="stylesheet" href="style.css" />
     <script src="https://d3js.org/d3.v7.min.js"></script>
   </head>
   <body>
     <header class="plain-header">
-      <h1>Credit Risk Analysis Dashboard</h1>
+      <h1>Credit Risk Dashboard</h1>
     </header>
 
     <section id="kpi-section">
@@ -19,7 +19,7 @@
     <section id="filter-controls-area">
       <div class="filter-controls-horizontal">
         <div id="global-risk-toggle">
-          <span class="toggle-label">Filter by Status:</span>
+          <span class="toggle-label">Filter by Status</span>
           <div class="toggle-group">
             <div class="toggle-item" data-risk="0">On-Track</div>
             <div class="toggle-item" data-risk="1">At Risk</div>
@@ -27,31 +27,34 @@
         </div>
 
         <div id="filter-display">
-          <div id="filter-summary">Showing All Clients</div>
+          <div id="filter-summary">All Clients</div>
         </div>
 
-        <button id="reset-btn">Reset All Filters</button>
+        <button id="reset-btn">Reset Filters</button>
       </div>
     </section>
 
-    <div class="dashboard-row top-row">
-      <section id="demographic-container" class="chart-box column-left">
-        <h2 class="section-title">(B) Demographics</h2>
+    <div class="dashboard-grid">
+      <section id="demographic-container" class="chart-box">
+        <h2 class="section-title">(B) Demographics Profile</h2>
         <div id="demographic"></div>
       </section>
-      <section id="credit-container" class="chart-box column-right">
-        <h2 class="section-title">(C) Credit Limit Distribution</h2>
+    </div>
+
+    <div class="dashboard-grid">
+      <section id="heatmap-section" class="chart-box">
+        <h2 class="section-title">(C) Payment Delay Heatmap</h2>
+        <div id="payment-placeholder"></div>
+      </section>
+      <section id="credit-container" class="chart-box">
+        <h2 class="section-title">(D) Credit Limit Distribution</h2>
         <div id="credit"></div>
       </section>
     </div>
 
-    <div class="dashboard-row bottom-row">
-      <section id="heatmap-section" class="chart-box equal-width">
-        <h2 class="section-title">(D) Payment History Heatmap</h2>
-        <div id="payment-placeholder"></div>
-      </section>
-      <section id="line-section" class="chart-box equal-width">
-        <h2 class="section-title">(E) Financial Behavior Trends</h2>
+    <div class="dashboard-grid">
+      <section id="line-section" class="chart-box">
+        <h2 class="section-title">(E) Financial Behavior (6 Months)</h2>
         <div id="Linechart"></div>
         <div id="line-legend" class="legend-box"></div>
       </section>
