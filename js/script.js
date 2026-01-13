@@ -57,6 +57,7 @@ function updateDashboard() {
     renderKPIs(filtered.length, d3.sum(filtered, d => d.default));
     renderDemo();
     renderLimitDistribution(filtered);
+    renderPaymentHeatmap(filtered); 
     renderLineChart(filtered);
     updateBreadcrumbs();
 }
@@ -170,6 +171,98 @@ function renderLineChart(dataSubset) {
         item.append("span").text(cfg.l);
     });
 }
+
+// Heatmap
+
+function renderPaymentHeatmap(dataSubset) {
+
+    const container = d3.select("#payment-placeholder").html("");
+
+    const months = [
+        { key: "PAY_0", label: "Sep" },
+        { key: "PAY_2", label: "Aug" },
+        { key: "PAY_3", label: "Jul" },
+        { key: "PAY_4", label: "Jun" },
+        { key: "PAY_5", label: "May" },
+        { key: "PAY_6", label: "Apr" }
+    ];
+
+    const groups = [
+        { label: "On-Track", value: 0 },
+        { label: "At Risk", value: 1 }
+    ];
+
+    // Prepare aggregated data
+    const heatmapData = [];
+    groups.forEach(g => {
+        months.forEach(m => {
+            const avg = d3.mean(
+                dataSubset.filter(d => d.default === g.value),
+                d => +d[m.key]
+            );
+            heatmapData.push({
+                group: g.label,
+                month: m.label,
+                value: avg ?? 0
+            });
+        });
+    });
+
+    const vW = 500, vH = 260;
+    const margin = { top: 40, right: 30, bottom: 40, left: 120 };
+    const w = vW - margin.left - margin.right;
+    const h = vH - margin.top - margin.bottom;
+
+    const svg = container.append("svg")
+        .attr("viewBox", `0 0 ${vW} ${vH}`)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const x = d3.scaleBand()
+        .domain(months.map(d => d.label))
+        .range([0, w])
+        .padding(0.05);
+
+    const y = d3.scaleBand()
+        .domain(groups.map(d => d.label))
+        .range([0, h])
+        .padding(0.1);
+
+    const color = d3.scaleSequential()
+        .domain([4, -2])   // severe delay → red, early/on-time → green
+        .interpolator(d3.interpolateRdYlGn);
+
+    // Axes
+    svg.append("g")
+        .attr("transform", `translate(0,${h})`)
+        .call(d3.axisBottom(x));
+
+    svg.append("g")
+        .call(d3.axisLeft(y));
+
+    // Heatmap cells
+    svg.selectAll("rect")
+        .data(heatmapData)
+        .enter()
+        .append("rect")
+        .attr("x", d => x(d.month))
+        .attr("y", d => y(d.group))
+        .attr("width", x.bandwidth())
+        .attr("height", y.bandwidth())
+        .attr("fill", d => color(d.value))
+        .on("mousemove", (event, d) => {
+            tooltip.style("visibility", "visible")
+                .html(`
+                    <strong>${d.group}</strong><br/>
+                    Month: ${d.month}<br/>
+                    Avg Delay: ${d.value.toFixed(2)} months
+                `)
+                .style("top", (event.pageY - 15) + "px")
+                .style("left", (event.pageX + 15) + "px");
+        })
+        .on("mouseout", () => tooltip.style("visibility", "hidden"));
+}
+
 
 function updateBreadcrumbs() {
     let p = [];
